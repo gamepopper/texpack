@@ -17,6 +17,7 @@ const char *help_text =
 	"-m, --metadata        Input metadata file in json format. (*)\n"
 	"-e, --pretty          Generated json file will be human readable.\n"
 	"-t, --trim            Trim input images.\n"
+	"-X, --file-extention  Include file-extension for sprite filenames with output, regardless of type used.\n"
 	"-i, --indentation     Number of spaces for indentation, 0 to use tabs (default).\n"
 	"-u, --premultiplied   Atlas images will have premultiplied alpha.\n"
 	"-b, --alpha-bleeding  Post-process atlas image with an alpha bleeding algorithm.\n"
@@ -31,7 +32,7 @@ const char *help_text =
 	"                        * legacy (default; uses the original JSON format created by urraka)\n"
 	"                        * jsonhash (Texture Atlas JSON Hash format)\n"
 	"                        * jsonarray (Texture Atlas JSON Array format)\n"
-    "                        * xml (Texture Atlas XML)jsonhash
+    "                        * xml (Texture Atlas XML)jsonhash"
 	"\n"
 	"(*) The format of the metadata file should be as follows:\n"
 	"\n"

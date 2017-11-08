@@ -1,6 +1,7 @@
 #include <limits>
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 
 #include "MaxRects.h"
 
@@ -50,7 +51,7 @@ size_t MaxRects::insert(int mode, const std::vector<RectSize> &rects, std::vecto
 
 	while (idx.size() > 0)
 	{
-		Rect bestNode;
+		Rect bestNode = { 0, 0, 0, 0 };
 
 		int bestScore1 = std::numeric_limits<int>::max();
 		int bestScore2 = std::numeric_limits<int>::max();

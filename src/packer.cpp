@@ -17,10 +17,11 @@
 #include <iterator>
 #include <cmath>
 #include <cstdio>
-#include <stdint.h>
-#include <libgen.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <algorithm>
+
+#include "dirent.h"
 
 #define countof(x) (sizeof(x) / sizeof(x[0]))
 
@@ -45,6 +46,11 @@ struct Sprite
 	int real_height;
 	int xoffset;
 	int yoffset;
+
+	bool operator<(const Sprite& s) const
+	{
+		return std::string(filename) < std::string(s.filename); // order by name
+	}
 };
 
 struct Result
@@ -466,8 +472,8 @@ struct Packer
 
 		if (params.max_size)
 		{
-			*w = std::min(n, params.width);
-			*h = std::min(n, params.height);
+			*w = min(n, params.width);
+			*h = min(n, params.height);
 		}
 	}
 
@@ -565,9 +571,9 @@ struct Packer
 						else
 							x = w < params.width ? &w : &h;
 
-						int max = x == &w ? params.width : params.height;
+						int MAX = x == &w ? params.width : params.height;
 
-						*x = std::min(*x * 2, max);
+						*x = min(*x * 2, MAX);
 					}
 					else
 					{
@@ -617,10 +623,10 @@ struct Packer
 					sprite.y = result_rects[i].y + params.padding;
 					sprite.rotated = (result_rects[i].width != base_rect.width);
 
-					xmin = std::min(xmin, result_rects[i].x);
-					xmax = std::max(xmax, result_rects[i].x + result_rects[i].width);
-					ymin = std::min(ymin, result_rects[i].y);
-					ymax = std::max(ymax, result_rects[i].y + result_rects[i].height);
+					xmin = min(xmin, result_rects[i].x);
+					xmax = max(xmax, result_rects[i].x + result_rects[i].width);
+					ymin = min(ymin, result_rects[i].y);
+					ymax = max(ymax, result_rects[i].y + result_rects[i].height);
 				}
 
 				if (!has_fixed_size() && !params.pot)
@@ -803,7 +809,7 @@ struct Packer
 				}
 			}
 
-			if (data != &srcbuffer[0])
+			if (srcbuffer.size() == 0 || data != &srcbuffer[0])
 				delete[] data;
 		}
 
@@ -824,6 +830,18 @@ struct Packer
 
 		png::save(filename, w, h, &dstbuffer[0]);
 	}
+
+	// Function object to sort pointers
+	struct sort_sprites
+	{
+		// overload the function call operator
+		bool operator()(const Sprite* lhs, const Sprite* rhs) const
+		{
+			// dereference the pointers to compare their targets
+			// using the Product class's operator<(...) function
+			return *lhs < *rhs;
+		}
+	};
 
 	void create_files(const std::vector<Result*> &results)
 	{
@@ -849,6 +867,7 @@ struct Packer
 				filename += formatting == 3 ? ".xml" : ".json";
 			}
 
+			std::sort(results[i]->sprites.begin(), results[i]->sprites.end());
 			create_file(filename.c_str(), *results[i]);
 		}
 	}
@@ -902,7 +921,7 @@ struct Packer
 
     void write_xml(const Result &result, XMLWriter writer, const char *filename)
     {
-        writer.content("<!-- Created with TexPack https://github.com/urraka/texpack -->\n");
+        writer.content("<!-- Created with TexPack https://github.com/gamepopper/texpack original by urraka -->\n");
         
         writer.openElt("TextureAtlas");
         writer.attr("imagePath", format_meta_image_name(filename));
@@ -915,7 +934,10 @@ struct Packer
             
             writer.openElt("SubTexture");
             
-            writer.attr("name", remove_extension(sprite.filename));
+			if (!params.file_ext)
+				writer.attr("name", remove_extension(sprite.filename));
+			else
+				writer.attr("name", sprite.filename);
             writer.attr("x", sprite.x);
             writer.attr("y", sprite.y);
             
@@ -960,7 +982,11 @@ struct Packer
 				writer.StartObject();
 
 				writer.String("filename");
-				writer.Key(remove_extension(sprite.filename).c_str());
+
+				if (!params.file_ext)
+					writer.Key(remove_extension(sprite.filename).c_str());
+				else
+					writer.Key(sprite.filename);
 
 				fill_object_info(writer, sprite);
 				writer.EndObject();
@@ -981,7 +1007,11 @@ struct Packer
 			{
 				const Sprite &sprite = result.sprites[i];
 
-				writer.String(remove_extension(sprite.filename).c_str());
+				if (!params.file_ext)
+					writer.String(remove_extension(sprite.filename).c_str());
+				else
+					writer.String(sprite.filename);
+				
 				writer.StartObject();
 
 				fill_object_info(writer, sprite);
@@ -1191,16 +1221,21 @@ struct c_string
 
 static bool is_dir(const char *path)
 {
-	struct stat sb;
-	return stat(path, &sb) == 0 && S_ISDIR(sb.st_mode);
+	errno = 0;
+	DIR* dir = opendir(path);
+	return dir != NULL && errno != ENOTDIR;
 }
 
 static bool create_dir(const char *path)
 {
 	if (!is_dir(path))
 	{
-		if (create_dir(dirname(c_string(path))))
-			mkdir(path, S_IRWXU);
+		char drive[256];
+		char dir[256];
+		char filename[256];
+		char ext[256];
+		_splitpath(path, drive, dir, filename, ext);
+		CreateDirectoryA(path, NULL);
 
 		return is_dir(path);
 	}
@@ -1215,7 +1250,13 @@ int pack(std::istream &input, const Params &params)
 	if (!packer.validate_params())
 		return 1;
 
-	if (!create_dir(dirname(c_string(params.output))))
+	char drive[256];
+	char dir[256];
+	char filename[256];
+	char ext[256];
+	_splitpath_s(params.output, drive, dir, filename, ext);
+
+	if (!create_dir(dir))
 	{
 		fputs("Failed to create directory.\n", stderr);
 		return 1;

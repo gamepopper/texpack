@@ -20,7 +20,8 @@ namespace pkr
 			padding(0),
 			width(0),
 			height(0),
-			max_size(false)
+			max_size(false),
+			file_ext(false)
 		{}
 
 		const char *output;
@@ -38,6 +39,7 @@ namespace pkr
 		int width;
 		int height;
 		bool max_size;
+		bool file_ext;
 	};
 
 	int pack(std::istream &input, const Params &params);

@@ -6,3 +6,7 @@ test/output/
 test/input2/
 test/output2/
 ext/
+*.opensdf
+*.sdf
+src/Debug/
+src/Release/

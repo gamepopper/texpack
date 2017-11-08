@@ -4,6 +4,8 @@ Simple cross-platform command line texture packer based on the MaxRects packing 
 
 There's a Photoshop script port of this tool written in JavaScript. Credits go to Rhody Lugo for that. See here: https://github.com/rraallvv/Layer2SpriteSheet
 
+This version is for those who wish to build and/or update it using Microsoft Visual Studio.
+
 **Usage:**
 
 ```
@@ -24,6 +26,7 @@ Options:
 -m, --metadata        Input metadata file in json format. (*)
 -e, --pretty          Generated json file will be human readable.
 -t, --trim            Trim input images.
+-X, --file-extention  Include file-extension for sprite filenames with output, regardless of type used.
 -i, --indentation     Number of spaces for indentation, 0 to use tabs (default).
 -u, --premultiplied   Atlas images will have premultiplied alpha.
 -b, --alpha-bleeding  Post-process atlas image with an alpha bleeding algorithm.
@@ -199,9 +202,13 @@ find . -name "*.png" | texpack -o out/atlas
 
 **Building:**
 
-Building has been tested on Linux, OSX and Windows (with MSYS/mingw-w64). Visual Studio is not supported.
+Building has been tested on Windows with Visual Studio 2013.
 
-In order to build, you will need to make sure that `libpng` and `zlib` are installed on your system. On Linux, you can use your system package manager to install these libraries. For example:
+In order to build, you will need to make sure that `libpng` and `zlib` are installed on your system. 
+
+For Visual Studio, it's best practice that you link `libpng` and `zlib` statically, due to how the libraries read and process files.
+
+On Linux, you can use your system package manager to install these libraries. For example:
 
 ```bash
 # Arch Linux
